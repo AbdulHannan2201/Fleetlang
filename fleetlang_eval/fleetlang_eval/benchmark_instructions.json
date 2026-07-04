@@ -1,0 +1,382 @@
+[
+  {
+    "id": 1,
+    "instruction": "transfer from shelf_A to loading_dock",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_A", "priority": 1},
+      {"task_type": "place", "target_zone": "loading_dock", "priority": 1}
+    ]
+  },
+  {
+    "id": 2,
+    "instruction": "move items from shelf_B to sorting_area",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_B", "priority": 1},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 1}
+    ]
+  },
+  {
+    "id": 3,
+    "instruction": "transport stock from shelf_C to loading_dock",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_C", "priority": 1},
+      {"task_type": "place", "target_zone": "loading_dock", "priority": 1}
+    ]
+  },
+  {
+    "id": 4,
+    "instruction": "clear shelf_A",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_A", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 5,
+    "instruction": "clear shelf_B",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_B", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 6,
+    "instruction": "clear shelf_C",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_C", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 7,
+    "instruction": "charge robot_0",
+    "ground_truth": [
+      {"task_type": "charge", "target_zone": "charging_station", "priority": 3}
+    ]
+  },
+  {
+    "id": 8,
+    "instruction": "go to loading_dock",
+    "ground_truth": [
+      {"task_type": "go_to", "target_zone": "loading_dock", "priority": 0}
+    ]
+  },
+  {
+    "id": 9,
+    "instruction": "navigate to shelf_A",
+    "ground_truth": [
+      {"task_type": "go_to", "target_zone": "shelf_A", "priority": 0}
+    ]
+  },
+  {
+    "id": 10,
+    "instruction": "charge robot_1",
+    "ground_truth": [
+      {"task_type": "charge", "target_zone": "charging_station", "priority": 3}
+    ]
+  },
+  {
+    "id": 11,
+    "instruction": "deliver cargo from shelf_A to sorting_area",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_A", "priority": 1},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 1}
+    ]
+  },
+  {
+    "id": 12,
+    "instruction": "transfer stock from shelf_B to loading_dock",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_B", "priority": 1},
+      {"task_type": "place", "target_zone": "loading_dock", "priority": 1}
+    ]
+  },
+  {
+    "id": 13,
+    "instruction": "move pallet from shelf_C to sorting_area",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_C", "priority": 1},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 1}
+    ]
+  },
+  {
+    "id": 14,
+    "instruction": "empty shelf_A completely",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_A", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 15,
+    "instruction": "empty shelf_B immediately",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_B", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 16,
+    "instruction": "empty shelf_C quickly",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_C", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 17,
+    "instruction": "charge robot_2 at station",
+    "ground_truth": [
+      {"task_type": "charge", "target_zone": "charging_station", "priority": 3}
+    ]
+  },
+  {
+    "id": 18,
+    "instruction": "visit the sorting_area",
+    "ground_truth": [
+      {"task_type": "go_to", "target_zone": "sorting_area", "priority": 0}
+    ]
+  },
+  {
+    "id": 19,
+    "instruction": "head to charging_station",
+    "ground_truth": [
+      {"task_type": "go_to", "target_zone": "charging_station", "priority": 0}
+    ]
+  },
+  {
+    "id": 20,
+    "instruction": "charge robot_3",
+    "ground_truth": [
+      {"task_type": "charge", "target_zone": "charging_station", "priority": 3}
+    ]
+  },
+  {
+    "id": 21,
+    "instruction": "bring boxes from shelf_A to sorting_area",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_A", "priority": 1},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 1}
+    ]
+  },
+  {
+    "id": 22,
+    "instruction": "carry items from shelf_B to loading_dock",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_B", "priority": 1},
+      {"task_type": "place", "target_zone": "loading_dock", "priority": 1}
+    ]
+  },
+  {
+    "id": 23,
+    "instruction": "take bin from shelf_C to sorting_area",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_C", "priority": 1},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 1}
+    ]
+  },
+  {
+    "id": 24,
+    "instruction": "cleanup shelf_A at once",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_A", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 25,
+    "instruction": "cleanup shelf_B immediately",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_B", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 26,
+    "instruction": "cleanup shelf_C for restocking",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_C", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 27,
+    "instruction": "charge robot_4 at the charging dock",
+    "ground_truth": [
+      {"task_type": "charge", "target_zone": "charging_station", "priority": 3}
+    ]
+  },
+  {
+    "id": 28,
+    "instruction": "go to shelf_B",
+    "ground_truth": [
+      {"task_type": "go_to", "target_zone": "shelf_B", "priority": 0}
+    ]
+  },
+  {
+    "id": 29,
+    "instruction": "go to shelf_C",
+    "ground_truth": [
+      {"task_type": "go_to", "target_zone": "shelf_C", "priority": 0}
+    ]
+  },
+  {
+    "id": 30,
+    "instruction": "charge robot_5",
+    "ground_truth": [
+      {"task_type": "charge", "target_zone": "charging_station", "priority": 3}
+    ]
+  },
+  {
+    "id": 31,
+    "instruction": "move cargo from shelf_A to loading_dock",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_A", "priority": 1},
+      {"task_type": "place", "target_zone": "loading_dock", "priority": 1}
+    ]
+  },
+  {
+    "id": 32,
+    "instruction": "transfer components from shelf_B to sorting_area",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_B", "priority": 1},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 1}
+    ]
+  },
+  {
+    "id": 33,
+    "instruction": "deliver order from shelf_C to loading_dock",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_C", "priority": 1},
+      {"task_type": "place", "target_zone": "loading_dock", "priority": 1}
+    ]
+  },
+  {
+    "id": 34,
+    "instruction": "clear shelf_A zone",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_A", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 35,
+    "instruction": "clear shelf_B aisle",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_B", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 36,
+    "instruction": "clear shelf_C rack",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_C", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 37,
+    "instruction": "charge robot_0 at charging_station",
+    "ground_truth": [
+      {"task_type": "charge", "target_zone": "charging_station", "priority": 3}
+    ]
+  },
+  {
+    "id": 38,
+    "instruction": "navigate to loading_dock",
+    "ground_truth": [
+      {"task_type": "go_to", "target_zone": "loading_dock", "priority": 0}
+    ]
+  },
+  {
+    "id": 39,
+    "instruction": "navigate to sorting_area",
+    "ground_truth": [
+      {"task_type": "go_to", "target_zone": "sorting_area", "priority": 0}
+    ]
+  },
+  {
+    "id": 40,
+    "instruction": "charge robot_1 at charging_station",
+    "ground_truth": [
+      {"task_type": "charge", "target_zone": "charging_station", "priority": 3}
+    ]
+  },
+  {
+    "id": 41,
+    "instruction": "bring shipment from shelf_A to loading_dock",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_A", "priority": 1},
+      {"task_type": "place", "target_zone": "loading_dock", "priority": 1}
+    ]
+  },
+  {
+    "id": 42,
+    "instruction": "carry boxes from shelf_B to sorting_area",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_B", "priority": 1},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 1}
+    ]
+  },
+  {
+    "id": 43,
+    "instruction": "take payload from shelf_C to loading_dock",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_C", "priority": 1},
+      {"task_type": "place", "target_zone": "loading_dock", "priority": 1}
+    ]
+  },
+  {
+    "id": 44,
+    "instruction": "empty shelf_A for cleanup",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_A", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 45,
+    "instruction": "empty shelf_B for inventory check",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_B", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 46,
+    "instruction": "empty shelf_C for rearrangement",
+    "ground_truth": [
+      {"task_type": "pick", "target_zone": "shelf_C", "priority": 2},
+      {"task_type": "place", "target_zone": "sorting_area", "priority": 2}
+    ]
+  },
+  {
+    "id": 47,
+    "instruction": "charge robot_2 at charging_station",
+    "ground_truth": [
+      {"task_type": "charge", "target_zone": "charging_station", "priority": 3}
+    ]
+  },
+  {
+    "id": 48,
+    "instruction": "head to shelf_A",
+    "ground_truth": [
+      {"task_type": "go_to", "target_zone": "shelf_A", "priority": 0}
+    ]
+  },
+  {
+    "id": 49,
+    "instruction": "head to sorting_area",
+    "ground_truth": [
+      {"task_type": "go_to", "target_zone": "sorting_area", "priority": 0}
+    ]
+  },
+  {
+    "id": 50,
+    "instruction": "charge robot_3 at charging_station",
+    "ground_truth": [
+      {"task_type": "charge", "target_zone": "charging_station", "priority": 3}
+    ]
+  }
+]
