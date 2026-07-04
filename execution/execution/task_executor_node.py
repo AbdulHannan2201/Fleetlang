@@ -177,7 +177,13 @@ class TaskExecutorNode(Node):
         self.prev_angular_z = 0.0
         
         # Battery state
-        self.battery_level = 100.0
+        initial_batteries = {
+            'robot_0': 95.0,
+            'robot_1': 45.0, # Low battery to trigger takeover demonstration
+            'robot_2': 75.0,
+            'robot_3': 85.0
+        }
+        self.battery_level = initial_batteries.get(self.robot_id, 100.0)
         self.last_replan_time = self.get_clock().now()
         
         # Collision yielding variables
@@ -269,19 +275,51 @@ class TaskExecutorNode(Node):
         
         # 1. Update Battery State (running at 20 Hz, so DT = 0.05)
         if self.state == "CHARGING":
-            self.battery_level = min(100.0, self.battery_level + 10.0 * 0.05)
+            self.battery_level = min(100.0, self.battery_level + 25.0 * 0.05)
             if self.battery_level >= 100.0:
                 self.get_logger().info("Battery fully charged! Returning to home spawn location.")
                 self.initiate_idle_behavior()
                 return
         else:
             # Drain battery
-            drain_rate = 0.01  # baseline drain rate for IDLE, RETURNING_HOME, GOING_TO_CHARGE
+            drain_rate = 0.1  # baseline drain rate for IDLE, RETURNING_HOME, GOING_TO_CHARGE
             if self.state == "NAVIGATING":
-                drain_rate = 0.5   # navigation drains battery faster
+                drain_rate = 3.0   # navigation drains battery faster
             elif self.state == "WORKING":
-                drain_rate = 1.5   # working (picking/placing) drains battery fastest
+                drain_rate = 6.0   # working (picking/placing) drains battery fastest
             self.battery_level = max(0.0, self.battery_level - drain_rate * 0.05)
+            
+        # Periodic battery update (every 10 ticks = 0.5 seconds)
+        self.battery_publish_counter = getattr(self, 'battery_publish_counter', 0) + 1
+        if self.battery_publish_counter >= 10:
+            self.battery_publish_counter = 0
+            self.publish_status("active" if self.current_task else "idle", self.state)
+            
+        # Check for battery emergency while executing a task
+        if self.state in ["NAVIGATING", "WORKING"] and self.battery_level < 20.0:
+            self.get_logger().warn(f"BATTERY CRITICAL ({self.battery_level:.1f}%). Aborting task {self.current_task.task_id if self.current_task else ''} and heading to charging station!")
+            
+            # Abort current task
+            if self.current_task:
+                self.publish_status("failed", "Battery critical - aborting task")
+            
+            # Reset task
+            if self.work_timer:
+                self.work_timer.cancel()
+                self.work_timer = None
+            self.current_task = None
+            
+            # Go to charging station
+            target = (6.0, -6.0) # charging_station center
+            self.state = "GOING_TO_CHARGE"
+            self.path = astar((self.x, self.y), target, self.other_robot_poses)
+            if self.path:
+                self.current_waypoint_idx = 0
+                self.prev_angular_z = 0.0
+                self.last_replan_time = self.get_clock().now()
+            else:
+                self.state = "IDLE"
+            return
             
         # Update other robots' pose history for deadlock resolution (every 1 second)
         self.history_tick_counter = (self.history_tick_counter + 1) % 20
@@ -499,7 +537,7 @@ class TaskExecutorNode(Node):
         status_msg.robot_id = self.robot_id
         status_msg.task_id = self.current_task.task_id if self.current_task else ""
         status_msg.status = status
-        status_msg.message = message
+        status_msg.message = f"battery:{self.battery_level:.1f}|{message}"
         self.status_pub.publish(status_msg)
 
 def main(args=None):

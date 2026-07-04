@@ -112,6 +112,14 @@ class Robot:
         self.wp_idx = 0
         self.work_left = 0.0
         self.trail = [tuple(pos)]
+        
+        initial_batteries = {
+            'robot_0': 95.0,
+            'robot_1': 45.0,
+            'robot_2': 75.0,
+            'robot_3': 85.0
+        }
+        self.battery_level = initial_batteries.get(rid, 100.0)
 
     @property
     def speed(self):
@@ -151,15 +159,41 @@ def ns_assign(robots, unassigned):
 
 def step_robots(robots, dt):
     for r in robots:
-        if r.status == "navigating":
+        # Update battery level
+        if r.status == "charging":
+            r.battery_level = min(100.0, r.battery_level + 25.0 * dt)
+            if r.battery_level >= 100.0:
+                r.status = "idle"
+        else:
+            drain = 0.1
+            if r.status in ["navigating", "charging_navigation"]:
+                drain = 3.0
+            elif r.status == "working":
+                drain = 6.0
+            r.battery_level = max(0.0, r.battery_level - drain * dt)
+
+        # Check battery emergency
+        if r.status in ["navigating", "working"] and r.battery_level < 20.0:
+            if r.current_task:
+                r.current_task.status = "pending"
+                r.current_task = None
+            r.status = "charging_navigation"
+            r.path = astar(tuple(r.pos), ZONES["charging_station"]) or []
+            r.wp_idx = 0
+
+        # Movement state execution
+        if r.status in ["navigating", "charging_navigation"]:
             # Track history trail
             r.trail.append(tuple(r.pos))
             if len(r.trail) > 20:
                 r.trail.pop(0)
                 
             if not r.path or r.wp_idx >= len(r.path):
-                r.status = "working"
-                r.work_left = 2.5
+                if r.status == "charging_navigation":
+                    r.status = "charging"
+                else:
+                    r.status = "working"
+                    r.work_left = 2.5
                 continue
             tx, ty = r.path[r.wp_idx]
             target = np.array([tx, ty])
@@ -332,6 +366,12 @@ def render_frame(screen, robots, tasks, completed_tasks, makespan, font_title, f
         
         id_txt = font_hud_bold.render(str(i), True, (255, 255, 255))
         screen.blit(id_txt, (sx - 5, sy - 7))
+        
+        # Battery tag above robot
+        bat = r.battery_level
+        bat_color = (0, 255, 150) if bat > 50 else (255, 200, 0) if bat > 20 else (255, 50, 50)
+        bat_txt = font_hud.render(f"{bat:.0f}%", True, bat_color)
+        screen.blit(bat_txt, (sx - 12, sy - 28))
 
     # Sidebar Panel
     sb_width = 350
@@ -416,14 +456,14 @@ def render_frame(screen, robots, tasks, completed_tasks, makespan, font_title, f
         color = COLOR_ROBOT_BOARDS[i % len(COLOR_ROBOT_BOARDS)]
         pygame.draw.circle(screen, color, (sb_x + 25, y_pos + 6), 5)
         
-        name_txt = font_hud_bold.render(f"Robot {i}:", True, (230, 240, 255))
+        name_txt = font_hud_bold.render(f"Robot {i} ({r.battery_level:.0f}%):", True, (230, 240, 255))
         screen.blit(name_txt, (sb_x + 40, y_pos))
         
         status_str = r.status
         if r.current_task:
             status_str = f"active ({r.current_task.task_type})"
         status_txt = font_hud.render(status_str, True, (180, 200, 220))
-        screen.blit(status_txt, (sb_x + 115, y_pos))
+        screen.blit(status_txt, (sb_x + 140, y_pos))
         
         pose_str = f"({r.pos[0]:.1f}, {r.pos[1]:.1f})"
         pose_txt = font_hud.render(pose_str, True, (130, 150, 170))

@@ -71,11 +71,13 @@ class WarehouseVisualizer(Node):
         self.makespan = 0.0
         
         # Initialize robot states
+        self.robot_batteries = {}
         for i in range(self.num_robots):
             rid = f"robot_{i}"
             self.robot_poses[rid] = (0.0, 0.0, 0.0)
             self.robot_tasks[rid] = None
             self.robot_status_texts[rid] = "idle"
+            self.robot_batteries[rid] = 100.0
             
         # Subscriptions
         self.pose_subs = []
@@ -153,7 +155,16 @@ class WarehouseVisualizer(Node):
         self.robot_poses[robot_id] = (x, y, theta)
 
     def status_callback(self, msg, robot_id):
-        self.robot_status_texts[robot_id] = f"{msg.status} ({msg.message})"
+        msg_message = msg.message
+        if "|" in msg.message and msg.message.startswith("battery:"):
+            parts = msg.message.split("|", 1)
+            try:
+                self.robot_batteries[robot_id] = float(parts[0].replace("battery:", ""))
+            except:
+                pass
+            msg_message = parts[1]
+            
+        self.robot_status_texts[robot_id] = f"{msg.status} ({msg_message})"
         if msg.status == "completed":
             self.completed_tasks.add(msg.task_id)
             self.robot_tasks[robot_id] = None
@@ -304,6 +315,12 @@ class WarehouseVisualizer(Node):
             # ID Text
             id_txt = self.font_hud_bold.render(str(i), True, (255, 255, 255))
             self.screen.blit(id_txt, (sx - 5, sy - 7))
+            
+            # Battery tag above robot
+            bat = self.robot_batteries.get(rid, 100.0)
+            bat_color = (0, 255, 150) if bat > 50 else (255, 200, 0) if bat > 20 else (255, 50, 50)
+            bat_txt = self.font_hud.render(f"{bat:.0f}%", True, bat_color)
+            self.screen.blit(bat_txt, (sx - 12, sy - 28))
 
         # 6. Draw Sidebar Panel (Right side, high-tech dashboard style)
         sb_width = 350
@@ -430,12 +447,12 @@ class WarehouseVisualizer(Node):
             bullet_y = y_pos + 6
             pygame.draw.circle(self.screen, color, (sb_x + 25, bullet_y), 5)
             
-            r_name = f"Robot {i}:"
+            r_name = f"Robot {i} ({self.robot_batteries.get(rid, 100.0):.0f}%):"
             name_txt = self.font_hud_bold.render(r_name, True, (230, 240, 255))
             self.screen.blit(name_txt, (sb_x + 40, y_pos))
             
             status_txt = self.font_hud.render(clean_status, True, (180, 200, 220))
-            self.screen.blit(status_txt, (sb_x + 115, y_pos))
+            self.screen.blit(status_txt, (sb_x + 140, y_pos))
             
             pose_str = f"({pos[0]:.1f}, {pos[1]:.1f})"
             pose_txt = self.font_hud.render(pose_str, True, (130, 150, 170))

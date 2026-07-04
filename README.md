@@ -18,6 +18,13 @@ Below is the real-time simulation view showing multiple mobile robots executing 
 
 *Figure 1: Real-time autonomous multi-robot task allocation and path-planning execution.*
 
+### System Snapshot
+Here is a high-resolution snapshot showing the fleet coordinate visualization, battery levels, and real-time telemetry panel:
+
+![FleetLang Snapshot](results/snapshot.png)
+
+*Figure 2: System telemetry HUD capturing real-time coordination, battery levels, and task queues.*
+
 ---
 
 ## 🚀 Key Features

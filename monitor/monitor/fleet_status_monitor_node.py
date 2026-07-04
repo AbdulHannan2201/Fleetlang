@@ -78,11 +78,23 @@ class FleetStatusMonitorNode(Node):
         if msg.status == "offline":
             self.get_logger().warn(f"Robot {robot_id} reported OFFLINE status.")
             self.handle_robot_failure(robot_id, msg.message or "Reported offline status", msg.task_id)
-        elif msg.status in ["completed", "failed"]:
+        elif msg.status == "completed":
             if robot_id in self.active_assignments:
                 del self.active_assignments[robot_id]
             if robot_id in self.start_times:
                 del self.start_times[robot_id]
+        elif msg.status == "failed":
+            task = self.active_assignments.get(robot_id)
+            if robot_id in self.active_assignments:
+                del self.active_assignments[robot_id]
+            if robot_id in self.start_times:
+                del self.start_times[robot_id]
+            if task:
+                self.get_logger().info(f"Reassigning failed task {task.task_id} from {robot_id}...")
+                reassign_msg = TaskList()
+                reassign_msg.instruction = "reassignment"
+                reassign_msg.tasks = [task]
+                self.reassign_pub.publish(reassign_msg)
 
     def inject_failure_callback(self, msg):
         robot_id = msg.data.strip()

@@ -14,6 +14,12 @@ class InstructionParserNode(Node):
     def __init__(self):
         super().__init__('instruction_parser_node')
         
+        self.declare_parameter('llm_url', 'http://localhost:11434/api/generate')
+        self.declare_parameter('llm_model', 'qwen2:7b-instruct')
+        
+        self.llm_url = self.get_parameter('llm_url').value
+        self.llm_model = self.get_parameter('llm_model').value
+        
         self.semantic_map = None
         self.task_counter = 0
         
@@ -173,10 +179,14 @@ class InstructionParserNode(Node):
             "Output ONLY raw JSON array, no extra words or markdown:"
         )
         
+        # Sync parameters
+        self.llm_url = self.get_parameter('llm_url').value
+        self.llm_model = self.get_parameter('llm_model').value
+        
         # REST API request to local Ollama service
-        url = "http://localhost:11434/api/generate"
+        url = self.llm_url
         data = {
-            "model": "qwen2:7b-instruct",
+            "model": self.llm_model,
             "prompt": prompt,
             "stream": False,
             "options": {
