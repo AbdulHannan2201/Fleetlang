@@ -95,7 +95,7 @@ class InstructionParserNode(Node):
             # Standalone mode helper or error
             return task_list_msg
 
-        zone_names = [zone.name for zone in self.semantic_map.zones]
+        zone_names = [zone.name for zone in self.semantic_map.zones] + ['nearest_shelf', 'nearest_charging_station', 'it', 'last_target']
         
         tasks = []
         parsed_successfully = False
@@ -114,6 +114,7 @@ class InstructionParserNode(Node):
             self.get_logger().info(f"Fallback parser generated {len(tasks)} tasks.")
             
         tasks = self.post_process_tasks(tasks, text)
+        tasks = self.validate_and_filter_tasks(tasks, text)
         task_list_msg.tasks = tasks
         return task_list_msg
 
@@ -385,14 +386,105 @@ class InstructionParserNode(Node):
         return tasks
 
     def find_zone_by_name(self, name):
+        clean_name = str(name).strip().lower().replace(' ', '_')
+        relative_zones = ['nearest_shelf', 'nearest_charging_station', 'it', 'last_target']
+        
+        if clean_name in relative_zones:
+            class MockZone:
+                def __init__(self, n):
+                    self.name = n
+                    self.zone_type = "relative"
+                    from geometry_msgs.msg import Pose
+                    self.center = Pose()
+            return MockZone(clean_name)
+            
         if self.semantic_map is None:
             return None
         # Handle variations in naming/case from LLM
-        clean_name = str(name).strip().lower().replace(' ', '_')
         for zone in self.semantic_map.zones:
             if zone.name.lower() == clean_name or zone.name.lower().replace('_', '') == clean_name.replace('_', ''):
                 return zone
         return None
+
+    # Regex patterns for conditional branching logic (avoid matching plain "and then")
+    CONDITIONAL_PATTERNS = [
+        r"\bif\b",           # if X, do Y
+        r"\bunless\b",       # unless X, do Y
+        r"\belse\b",         # else do Y
+        r"\bonly when\b",    # only when X
+        r"\bbut if\b",       # but if X
+        r"\bwhen its?\b",    # when its battery
+        r"battery below\b",  # battery below threshold
+        r"battery <",        # battery < N
+        r"less than\b",      # less than N
+        r"above \d+%",       # above N%
+        r"below \d+%",       # below N%
+        r"is triggered",     # event trigger
+        r"becomes idle",     # state dependency
+        r"is full",          # capacity dependency
+        r"\bis at\b",        # robot location dependency
+    ]
+
+    # Unresolvable source references (no live robot context at parse time)
+    UNRESOLVABLE_SOURCES = [
+        r"^\s*(move|take|transfer|grab|carry|pick up)\s+(it|that|this|the item|the box|the thing)\b",
+        r"^\s*(move|take|transfer|grab|carry)\s+(it)\s+to\b",
+        r"from\s+(there|here|this location|that location|the current location)\b",
+        r"from\s+the\s+(current shelf|next shelf|that rack|the rack)\b",
+        r"\bthe next shelf\b",
+        r"to\s+the\s+place\b",
+        r"\bthe other dock\b",
+    ]
+
+    def validate_and_filter_tasks(self, tasks, text):
+        import re as _re
+        text_lower = text.lower()
+
+        # 1. Detect true conditional branching logic (not plain sequential "and then")
+        is_conditional = any(_re.search(p, text_lower) for p in self.CONDITIONAL_PATTERNS)
+        if is_conditional:
+            self.get_logger().error(f"Instruction contains unsupported conditional: '{text}'")
+            rejected_t = Task()
+            rejected_t.task_id = "rejected_conditional"
+            rejected_t.task_type = "rejected"
+            rejected_t.target_zone = "unsupported_conditional"
+            rejected_t.priority = 0
+            rejected_t.status = "flagged"
+            return [rejected_t]
+
+        # 2. Detect unresolvable standalone source references at parse-time
+        is_unresolvable = any(_re.search(p, text_lower) for p in self.UNRESOLVABLE_SOURCES)
+        if is_unresolvable:
+            self.get_logger().error(f"Instruction contains unresolvable reference: '{text}'")
+            rejected_t = Task()
+            rejected_t.task_id = "rejected_unresolvable"
+            rejected_t.task_type = "rejected"
+            rejected_t.target_zone = "unresolvable_reference"
+            rejected_t.priority = 0
+            rejected_t.status = "flagged"
+            return [rejected_t]
+
+        # 3. Check zones in parsed tasks
+        valid_reference_zones = [
+            'shelf_a', 'shelf_b', 'shelf_c', 'loading_dock', 'sorting_area',
+            'charging_station', 'nearest_shelf', 'nearest_charging_station',
+            'it', 'last_target'
+        ]
+        validated_tasks = []
+        for t in tasks:
+            zone_name = t.target_zone.lower().replace(' ', '_')
+            if zone_name in ["current_location", "there"] or zone_name not in valid_reference_zones:
+                self.get_logger().error(f"Task targets unresolvable zone '{t.target_zone}': '{text}'")
+                rejected_t = Task()
+                rejected_t.task_id = "rejected_unresolvable"
+                rejected_t.task_type = "rejected"
+                rejected_t.target_zone = "unresolvable_reference"
+                rejected_t.priority = 0
+                rejected_t.status = "flagged"
+                return [rejected_t]
+            validated_tasks.append(t)
+
+        return validated_tasks
 
 def main(args=None):
     rclpy.init(args=args)

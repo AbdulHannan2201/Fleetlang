@@ -251,11 +251,46 @@ class TaskExecutorNode(Node):
             return
             
         self.current_task = msg.task
+        
+        # Dynamic reference resolution: nearest_shelf
+        if self.current_task.target_zone == "nearest_shelf":
+            shelves = {
+                "shelf_A": (-5.0, 4.0),
+                "shelf_B": (0.0, 4.0),
+                "shelf_C": (5.0, 4.0)
+            }
+            closest_shelf = min(shelves.keys(), key=lambda k: math.hypot(shelves[k][0] - self.x, shelves[k][1] - self.y))
+            self.current_task.target_zone = closest_shelf
+            self.current_task.target_pose.position.x = shelves[closest_shelf][0]
+            self.current_task.target_pose.position.y = 4.0
+            self.get_logger().info(f"Resolved 'nearest_shelf' dynamically to {closest_shelf} at executor")
+            
+        # Dynamic reference resolution: it / last_target
+        elif self.current_task.target_zone in ["it", "last_target"]:
+            last_zone = getattr(self, 'last_completed_zone', 'shelf_A')
+            self.current_task.target_zone = last_zone
+            zones = {
+                "shelf_A": (-5.0, 4.0),
+                "shelf_B": (0.0, 4.0),
+                "shelf_C": (5.0, 4.0),
+                "loading_dock": (-6.0, -6.0),
+                "sorting_area": (0.0, -6.0),
+                "charging_station": (6.0, -6.0)
+            }
+            pos = zones.get(last_zone, (-5.0, 4.0))
+            self.current_task.target_pose.position.x = pos[0]
+            self.current_task.target_pose.position.y = pos[1]
+            self.get_logger().info(f"Resolved '{msg.task.target_zone}' dynamically to {last_zone} at executor")
+            
         self.get_logger().info(f"Accepted task {self.current_task.task_id} ({self.current_task.task_type})")
         
-        # Plan path to target
-        target = (self.current_task.target_pose.position.x, self.current_task.target_pose.position.y)
-        self.path = astar((self.x, self.y), target, self.other_robot_poses)
+        # Adjust Y target for shelves to front of shelf (aisle Y = 1.0)
+        target_x = self.current_task.target_pose.position.x
+        target_y = self.current_task.target_pose.position.y
+        if "shelf" in self.current_task.target_zone:
+            target_y = 1.0
+            
+        self.path = astar((self.x, self.y), (target_x, target_y), self.other_robot_poses)
         
         if self.path:
             self.current_waypoint_idx = 0
@@ -495,6 +530,7 @@ class TaskExecutorNode(Node):
             self.work_timer.cancel()
             self.work_timer = None
             
+        self.last_completed_zone = self.current_task.target_zone
         self.publish_status("completed", f"Completed {self.current_task.task_type}")
         self.get_logger().info(f"Finished task {self.current_task.task_id}. Current Battery: {self.battery_level:.1f}%")
         

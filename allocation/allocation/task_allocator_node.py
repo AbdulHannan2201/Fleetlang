@@ -102,6 +102,8 @@ class TaskAllocatorNode(Node):
             self.robot_assignments[robot_id] = None
             if msg.task_id in self.all_tasks:
                 self.all_tasks[msg.task_id].status = "completed"
+                # Store last zone name
+                setattr(self, f"last_zone_{robot_id}", self.all_tasks[msg.task_id].target_zone)
                 # Remove from unassigned if somehow still there
                 self.unassigned_tasks = [t for t in self.unassigned_tasks if t.task_id != msg.task_id]
         elif msg.status == "failed":
@@ -333,6 +335,40 @@ class TaskAllocatorNode(Node):
         self.get_logger().info(f"Allocated {assigned_count} tasks using Auction + Neighborhood Search.")
 
     def assign_task(self, robot_id, task):
+        # Resolve target dynamically if it was a relative reference before publishing/sending
+        resolved_zone = task.target_zone
+        if task.target_zone == "nearest_shelf":
+            curr_pose = self.robot_poses[robot_id]
+            shelves = ["shelf_A", "shelf_B", "shelf_C"]
+            coords = {
+                "shelf_A": np.array([-5.0, 4.0]),
+                "shelf_B": np.array([0.0, 4.0]),
+                "shelf_C": np.array([5.0, 4.0])
+            }
+            closest_shelf = min(shelves, key=lambda k: np.linalg.norm(curr_pose - coords[k]))
+            task.target_zone = closest_shelf
+            task.target_pose.position.x = coords[closest_shelf][0]
+            task.target_pose.position.y = 4.0
+            self.get_logger().info(f"Resolved 'nearest_shelf' dynamically to {closest_shelf} at allocator assignment")
+        elif task.target_zone in ["it", "last_target"]:
+            last_zone = getattr(self, f"last_zone_{robot_id}", "shelf_A")
+            task.target_zone = last_zone
+            coords = {
+                "shelf_A": (-5.0, 4.0),
+                "shelf_B": (0.0, 4.0),
+                "shelf_C": (5.0, 4.0),
+                "loading_dock": (-6.0, -6.0),
+                "sorting_area": (0.0, -6.0),
+                "charging_station": (6.0, -6.0)
+            }
+            pos = coords.get(last_zone, (-5.0, 4.0))
+            task.target_pose.position.x = pos[0]
+            task.target_pose.position.y = pos[1]
+            self.get_logger().info(f"Resolved '{resolved_zone}' dynamically to {last_zone} at allocator assignment")
+
+        # Set last zone
+        setattr(self, f"last_zone_{robot_id}", task.target_zone)
+
         task.status = "assigned"
         self.all_tasks[task.task_id] = task
         
@@ -352,9 +388,32 @@ class TaskAllocatorNode(Node):
                 return f"robot_{match.group(1)}"
         return None
 
+    def resolve_dynamic_target(self, robot_id, task, current_pos):
+        zone_name = task.target_zone.lower().replace(' ', '_')
+        if zone_name == "nearest_shelf":
+            shelves = {
+                "shelf_A": np.array([-5.0, 4.0]),
+                "shelf_B": np.array([0.0, 4.0]),
+                "shelf_C": np.array([5.0, 4.0])
+            }
+            closest = min(shelves.keys(), key=lambda k: np.linalg.norm(current_pos - shelves[k]))
+            return shelves[closest]
+        elif zone_name in ["it", "last_target"]:
+            last_zone = getattr(self, f"last_zone_{robot_id}", "shelf_A")
+            zones = {
+                "shelf_a": np.array([-5.0, 4.0]),
+                "shelf_b": np.array([0.0, 4.0]),
+                "shelf_c": np.array([5.0, 4.0]),
+                "loading_dock": np.array([-6.0, -6.0]),
+                "sorting_area": np.array([0.0, -6.0]),
+                "charging_station": np.array([6.0, -6.0])
+            }
+            return zones.get(last_zone.lower(), zones["shelf_a"])
+        return np.array([task.target_pose.position.x, task.target_pose.position.y])
+
     def calculate_distance_to_task(self, robot_id, task):
         curr_pose = self.robot_poses[robot_id]
-        target_pose = np.array([task.target_pose.position.x, task.target_pose.position.y])
+        target_pose = self.resolve_dynamic_target(robot_id, task, curr_pose)
         return np.linalg.norm(curr_pose - target_pose)
 
     def calculate_incremental_cost(self, robot_id, current_sequence, new_task):
@@ -370,7 +429,7 @@ class TaskAllocatorNode(Node):
         curr_pos = self.robot_poses[robot_id]
         
         for task in sequence:
-            target_pos = np.array([task.target_pose.position.x, task.target_pose.position.y])
+            target_pos = self.resolve_dynamic_target(robot_id, task, curr_pos)
             cost += np.linalg.norm(curr_pos - target_pos)
             curr_pos = target_pos # next start is previous target
             
