@@ -432,8 +432,8 @@ def main():
     dt = 0.2
     makespan = 0.0
     
-    # Run 100 simulation steps
-    for step in range(120):
+    # Run 180 simulation steps to ensure all tasks complete
+    for step in range(180):
         # Allocation
         pending = [t for t in unassigned if t.status == "pending"]
         if pending:
@@ -447,6 +447,7 @@ def main():
         for t in list(unassigned):
             if t.status == "completed":
                 completed_tasks.add(t.task_id)
+                unassigned.remove(t)
                 
         # Render frame
         render_frame(screen, robots, tasks, completed_tasks, makespan, font_title, font_hud, font_hud_bold, instruction)
