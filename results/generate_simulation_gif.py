@@ -470,7 +470,85 @@ def render_frame(screen, robots, tasks, completed_tasks, makespan, font_title, f
         screen.blit(pose_txt, (sb_x + 270, y_pos))
         y_pos += 22
 
+def parse_instruction(text):
+    import re
+    # Standardize shelf numbers to characters (e.g. shelf 1/2/3 -> shelf_A/_B/_C)
+    text = re.sub(r"\bshelf\s*1\b", "shelf_A", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bshelf\s*2\b", "shelf_B", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bshelf\s*3\b", "shelf_C", text, flags=re.IGNORECASE)
+
+    tl = text.lower()
+    seen_pos = {}
+    for z in ZONES:
+        zl = z.lower()
+        pos = tl.find(zl)
+        if pos == -1:
+            pos = tl.find(zl.replace('_', ' '))
+        if pos != -1:
+            seen_pos[z] = pos
+    matched = sorted(seen_pos.keys(), key=lambda z: seen_pos[z])
+
+    is_transfer = any(k in tl for k in ["move","transfer","transport","deliver","carry","bring","take","offload","retrieve","unload"])
+    is_clear    = any(k in tl for k in ["clear","empty","cleanup"])
+    is_charge   = "charge" in tl
+    is_goto     = any(k in tl for k in ["go to","navigate to","visit","head to","go_to"])
+
+    base_tasks = []
+    if is_transfer:
+        src, dst = None, None
+        for z in matched:
+            zn = z.lower()
+            sp = zn.replace('_', ' ')
+            if re.search(rf"\bfrom\b[^a-z]*(?:{re.escape(zn)}|{re.escape(sp)})", tl):
+                src = z
+            elif re.search(rf"\bto\b[^a-z]*(?:{re.escape(zn)}|{re.escape(sp)})", tl):
+                dst = z
+        if src is None: src = matched[0] if matched else "shelf_A"
+        if dst is None: dst = matched[1] if len(matched) > 1 else "loading_dock"
+        base_tasks = [{"task_type":"pick", "target_zone":src},
+                      {"task_type":"place","target_zone":dst}]
+    elif is_clear:
+        z = matched[0] if matched else "shelf_A"
+        base_tasks = [{"task_type":"pick", "target_zone":z},
+                      {"task_type":"place","target_zone":"sorting_area"}]
+    elif is_charge:
+        base_tasks = [{"task_type":"charge","target_zone":"charging_station"}]
+    elif is_goto or matched:
+        z = matched[0] if matched else "shelf_A"
+        base_tasks = [{"task_type":"go_to","target_zone":z}]
+        
+    # Post-process quantity and robot mapping
+    quantity = 1
+    qty_match = re.search(r"(\d+)\s*(?:pallet|item|box|pack|unit|load)s?", tl)
+    if qty_match:
+        quantity = int(qty_match.group(1))
+    else:
+        qty_match_standalone = re.search(r"(?:offload|pickup|move|transfer)\s+(\d+)", tl)
+        if qty_match_standalone:
+            quantity = int(qty_match_standalone.group(1))
+            
+    robots_count = None
+    bot_match = re.search(r"(?:using|with|via)\s*(\d+)\s*(?:robot|bot)s?", tl)
+    if bot_match:
+        robots_count = int(bot_match.group(1))
+        
+    tasks = []
+    task_idx = 0
+    for q in range(quantity):
+        robot_suffix = f"_robot_{q % robots_count}" if robots_count is not None else ""
+        for base_t in base_tasks:
+            task_idx += 1
+            tid = f"task_{task_idx}_{base_t['task_type']}{robot_suffix}"
+            tasks.append(Task(tid, base_t['task_type'], base_t['target_zone']))
+            
+    return tasks
+
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--prompt', type=str, default="Retrieve Shelf A & B, deliver cargo to Loading Dock and Sorting Area, charge Robot 0 and 3, and dispatch Robot 2 to Shelf C")
+    args = parser.parse_args()
+
     pygame.init()
     pygame.font.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -486,17 +564,20 @@ def main():
         
     robots = [Robot(f"robot_{i}", SPAWN_LOCATIONS[i % len(SPAWN_LOCATIONS)]) for i in range(4)]
     
-    instruction = "Retrieve Shelf A & B, deliver cargo to Loading Dock and Sorting Area, charge Robot 0 and 3, and dispatch Robot 2 to Shelf C"
-    tasks = [
-        Task("t1_pick_shelf_A", "pick", "shelf_A"),
-        Task("t2_place_loading_dock", "place", "loading_dock"),
-        Task("t3_pick_shelf_B", "pick", "shelf_B"),
-        Task("t4_place_sorting_area", "place", "sorting_area"),
-        Task("t5_charge_robot_0", "charge", "charging_station"),
-        Task("t6_charge_robot_3", "charge", "charging_station"),
-        Task("t7_pick_shelf_C", "pick", "shelf_C"),
-        Task("t8_return_dock", "go_to", "docking_station")
-    ]
+    instruction = args.prompt
+    tasks = parse_instruction(instruction)
+    if not tasks:
+        # Fallback to default tasks
+        tasks = [
+            Task("t1_pick_shelf_A", "pick", "shelf_A"),
+            Task("t2_place_loading_dock", "place", "loading_dock"),
+            Task("t3_pick_shelf_B", "pick", "shelf_B"),
+            Task("t4_place_sorting_area", "place", "sorting_area"),
+            Task("t5_charge_robot_0", "charge", "charging_station"),
+            Task("t6_charge_robot_3", "charge", "charging_station"),
+            Task("t7_pick_shelf_C", "pick", "shelf_C"),
+            Task("t8_return_dock", "go_to", "docking_station")
+        ]
     
     completed_tasks = set()
     unassigned = list(tasks)

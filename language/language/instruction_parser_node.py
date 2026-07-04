@@ -77,6 +77,12 @@ class InstructionParserNode(Node):
         self.get_logger().info(f"Published task list with {len(task_list_msg.tasks)} tasks.")
 
     def parse_instruction(self, text, use_llm=True):
+        import re
+        # Standardize shelf numbers to characters (e.g. shelf 1/2/3 -> shelf_A/_B/_C)
+        text = re.sub(r"\bshelf\s*1\b", "shelf_A", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bshelf\s*2\b", "shelf_B", text, flags=re.IGNORECASE)
+        text = re.sub(r"\bshelf\s*3\b", "shelf_C", text, flags=re.IGNORECASE)
+
         task_list_msg = TaskList()
         task_list_msg.instruction = text
         
@@ -262,7 +268,7 @@ class InstructionParserNode(Node):
         matched_zones = sorted(zone_positions.keys(), key=lambda z: zone_positions[z])
                 
         tasks = []
-        is_transfer = any(k in text_lower for k in ["move", "transfer", "transport", "deliver", "carry", "bring", "take"])
+        is_transfer = any(k in text_lower for k in ["move", "transfer", "transport", "deliver", "carry", "bring", "take", "offload", "retrieve", "unload"])
         is_clear = any(k in text_lower for k in ["clear", "empty", "cleanup"])
         is_charge = "charge" in text_lower
         is_goto = any(k in text_lower for k in ["go to", "navigate to", "visit", "go_to", "head to"])
