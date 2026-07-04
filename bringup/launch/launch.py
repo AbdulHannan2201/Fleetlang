@@ -8,6 +8,8 @@ def launch_setup(context, *args, **kwargs):
     num_robots = int(num_robots_str)
     
     allocator_type = context.launch_configurations.get('allocator_type', 'neighborhood_search')
+    llm_url = context.launch_configurations.get('llm_url', 'http://localhost:11434/api/generate')
+    llm_model = context.launch_configurations.get('llm_model', 'qwen2:7b-instruct')
     
     nodes = [
         # Semantic Map Node
@@ -22,7 +24,11 @@ def launch_setup(context, *args, **kwargs):
             package='language',
             executable='instruction_parser_node',
             name='instruction_parser_node',
-            output='screen'
+            output='screen',
+            parameters=[{
+                'llm_url': llm_url,
+                'llm_model': llm_model
+            }]
         ),
         # Task Allocator Node
         Node(
@@ -95,6 +101,16 @@ def generate_launch_description():
             'allocator_type',
             default_value='neighborhood_search',
             description='Task allocator type: greedy or neighborhood_search'
+        ),
+        DeclareLaunchArgument(
+            'llm_url',
+            default_value='http://localhost:11434/api/generate',
+            description='Endpoint URL of local Ollama service'
+        ),
+        DeclareLaunchArgument(
+            'llm_model',
+            default_value='qwen2:7b-instruct',
+            description='Ollama model name to query (e.g. qwen2:7b-instruct, mistral)'
         ),
         OpaqueFunction(function=launch_setup)
     ])
