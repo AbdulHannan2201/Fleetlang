@@ -354,7 +354,7 @@ check("1e. Path contains no obstacle cells", all_clear)
 # ══════════════════════════════════════
 print("\n[2] Instruction Parser Tests (50 benchmarks)")
 
-json_path = "/home/hannan/workspace/FleetLang/fleetlang_eval/fleetlang_eval/benchmark_instructions.json"
+json_path = "/home/hannan/workspace/FleetLang/eval/eval/benchmark_instructions.json"
 with open(json_path) as f:
     benchmarks = json.load(f)
 

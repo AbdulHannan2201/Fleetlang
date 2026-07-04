@@ -20,22 +20,22 @@ graph TD
     Monitor -->|Reassignment Trigger| Allocator
 ```
 
-### A. Instruction Parser Node (`fleetlang_language`)
+### A. Instruction Parser Node (`language`)
 - **LLM Parsing:** Queries a local Ollama instance running `qwen2:7b-instruct` (port 11434). It uses a structured prompt to convert natural language instructions (e.g., *"transfer items from shelf_A to loading_dock"*) into a structured JSON array of tasks containing `task_type`, `target_zone`, and `priority`.
 - **Semantic Grounding:** Validates the target zones parsed by the LLM against the current semantic map to filter out hallucinations (e.g., ensuring `shelf_A` exists).
 - **Rule-Based Fallback:** If Ollama is offline or fails to respond within the timeout, a robust regex-based fallback parses the text using word boundaries and text-occurrence positions.
 
-### B. Task Allocator Node (`fleetlang_allocation`)
+### B. Task Allocator Node (`allocation`)
 - **Greedy Baseline:** Assigns incoming tasks to the closest idle robot using Euclidean distance.
 - **Neighborhood Search (NS) / Auction-Based:** Minimizes the fleet's makespan by evaluating incremental travel costs for sequences of tasks. Robots bid on tasks based on their current load and positions, allowing optimal multi-task grouping.
 
-### C. Task Executor Node (`fleetlang_execution`)
+### C. Task Executor Node (`execution`)
 - **State Machine:** Governs robot behavior through states: `IDLE` $\rightarrow$ `NAVIGATING` $\rightarrow$ `WORKING` $\rightarrow$ `COMPLETED` / `FAILED`.
 - **A* Path Planning:** Computes shortest paths over a grid representation of the warehouse map. It handles obstacle avoidance around shelves (defined as coordinate bounding boxes).
 - **Dynamic Waypoint Recovery:** Shelves act as physical obstacles, meaning shelf centers are technically within obstacle cells. The executor searches outward up to 20 grid cells to find the nearest free coordinate to safely guide the robot to the shelf's edge.
 - **Kinematic Controller:** Computes yaw alignment and linear velocity to track paths at speeds up to $1.5\text{ m/s}$ with a target threshold of $0.4\text{ m}$.
 
-### D. Fleet Status Monitor Node (`fleetlang_monitor`)
+### D. Fleet Status Monitor Node (`monitor`)
 - **Stuck/Timeout Detection:** Tracks robot progress. If a robot remains in the `NAVIGATING` or `WORKING` state for more than $60\text{ seconds}$ without finishing, it is flagged as stuck.
 - **Task Reassignment:** The monitor triggers the allocator to reassign the stuck robot's tasks back to the queue, while keeping the robot in the fleet (recovering from path planning issues).
 - **Offline Failure Handling:** If a robot is manually killed or marked offline (via `/fleet/inject_failure`), its tasks are re-queued and the robot is blacklisted from future allocations.

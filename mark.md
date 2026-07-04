@@ -109,12 +109,12 @@ Layered design:
 | Topic | Type | Publisher → Subscriber |
 |---|---|---|
 | `/fleet/instruction` | `std_msgs/String` | UI → `instruction_parser_node` |
-| `/fleet/task_list` | `fleetlang_msgs/TaskList` | `instruction_parser_node` → `task_allocator_node` |
-| `/fleet/semantic_map` | `fleetlang_msgs/SemanticMap` | `semantic_map_node` → `task_allocator_node`, `instruction_parser_node` |
-| `/fleet/assignment` | `fleetlang_msgs/TaskAssignment` | `task_allocator_node` → `robotN/task_executor_node` |
+| `/fleet/task_list` | `msgs/TaskList` | `instruction_parser_node` → `task_allocator_node` |
+| `/fleet/semantic_map` | `msgs/SemanticMap` | `semantic_map_node` → `task_allocator_node`, `instruction_parser_node` |
+| `/fleet/assignment` | `msgs/TaskAssignment` | `task_allocator_node` → `robotN/task_executor_node` |
 | `/robotN/odom`, `/robotN/imu`, `/robotN/scan` | standard | sensors → `ekf_node`, Nav2 |
-| `/robotN/task_status` | `fleetlang_msgs/TaskStatus` | `task_executor_node` → `fleet_status_monitor_node` |
-| `/fleet/reassignment_request` | `fleetlang_msgs/TaskList` | `fleet_status_monitor_node` → `task_allocator_node` |
+| `/robotN/task_status` | `msgs/TaskStatus` | `task_executor_node` → `fleet_status_monitor_node` |
+| `/fleet/reassignment_request` | `msgs/TaskList` | `fleet_status_monitor_node` → `task_allocator_node` |
 
 ## 11. TF Tree
 
@@ -232,21 +232,21 @@ A workshop paper at an ICRA/IROS workshop on language-grounded multi-robot syste
 
 ```
 fleetlang/
-├── fleetlang_msgs/            # custom message/interface definitions
+├── msgs/            # custom message/interface definitions
 │   └── msg/
 │       ├── TaskList.msg
 │       ├── TaskAssignment.msg
 │       ├── TaskStatus.msg
 │       └── SemanticMap.msg
-├── fleetlang_bringup/         # launch files, world files, robot spawn configs
+├── bringup/         # launch files, world files, robot spawn configs
 │   ├── launch/
 │   └── worlds/
-├── fleetlang_language/        # instruction_parser_node
-├── fleetlang_semantic_map/    # semantic_map_node, landmark classifier
-├── fleetlang_allocation/      # task_allocator_node (greedy + neighborhood-search)
-├── fleetlang_execution/       # task_executor_node, per-robot state machine
-├── fleetlang_monitor/         # fleet_status_monitor_node
-├── fleetlang_eval/            # evaluation scripts, ablation configs, plots
+├── language/        # instruction_parser_node
+├── semantic_map/    # semantic_map_node, landmark classifier
+├── allocation/      # task_allocator_node (greedy + neighborhood-search)
+├── execution/       # task_executor_node, per-robot state machine
+├── monitor/         # fleet_status_monitor_node
+├── eval/            # evaluation scripts, ablation configs, plots
 ├── docs/
 │   ├── architecture.md
 │   └── evaluation.md
@@ -280,7 +280,7 @@ Same as above, plus: `.github/workflows/ci.yml` (build + lint on push), `CONTRIB
 | 2 | SLAM Toolbox mapping + AMCL localization working |
 | 3 | `robot_localization` EKF fusion tuned; single-robot Nav2 goal-sending working |
 | 4 | Multi-robot namespacing; 2 robots spawn and navigate independently |
-| 5 | `fleetlang_msgs` defined; greedy `task_allocator_node` assigning hand-specified tasks |
+| 5 | `msgs` defined; greedy `task_allocator_node` assigning hand-specified tasks |
 | 6 | `task_executor_node` state machine; end-to-end hand-specified-task demo (2 robots) |
 | 7 | Semantic map pipeline: landmark capture + zero-shot classification |
 | 8 | `instruction_parser_node`: LLM prompt design, grounded against semantic map |
