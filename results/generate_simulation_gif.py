@@ -20,9 +20,16 @@ ZONES = {
     "loading_dock":     (-6.0, -6.0),
     "sorting_area":     ( 0.0, -6.0),
     "charging_station": ( 6.0, -6.0),
+    "docking_station":  (-9.0, -5.0),
 }
 
-SPAWN_LOCATIONS = [(-8.0,-8.0),(-6.0,-8.0),(-4.0,-8.0),(-2.0,-8.0),(0.0,-8.0),(2.0,-8.0)]
+# Initial starting positions for the 4 robots
+SPAWN_LOCATIONS = [
+    (-8.0, -2.0),
+    (-4.0, -3.0),
+    (2.0, -2.0),
+    (7.0, -3.0)
+]
 
 def metric_to_grid(x, y):
     return int((x - ORIGIN_X) / RESOLUTION), int((y - ORIGIN_Y) / RESOLUTION)
@@ -34,6 +41,7 @@ def is_obstacle(c, r):
     if c < 0 or c >= GRID_SIZE or r < 0 or r >= GRID_SIZE:
         return True
     x, y = grid_to_metric(c, r)
+    # Blockages for Shelves
     if -7.2 <= x <= -2.8 and 1.8 <= y <= 6.2: return True
     if -2.2 <= x <=  2.2 and 1.8 <= y <= 6.2: return True
     if  2.8 <= x <=  7.2 and 1.8 <= y <= 6.2: return True
@@ -103,16 +111,19 @@ class Robot:
         self.path = []
         self.wp_idx = 0
         self.work_left = 0.0
+        self.trail = [tuple(pos)]
 
     @property
     def speed(self):
-        return 1.5  # m/s
+        return 1.4  # m/s
 
 def ns_assign(robots, unassigned):
     if not unassigned:
         return
     online = [r for r in robots]
     temp = {r.robot_id: ([r.current_task] if r.current_task else []) for r in online}
+    
+    # Simple assignment heuristic for the visual showcase
     for task in unassigned:
         best_r, best_incr = None, float('inf')
         for r in online:
@@ -126,6 +137,7 @@ def ns_assign(robots, unassigned):
                 best_incr, best_r = incr, r
         if best_r:
             temp[best_r.robot_id].append(task)
+            
     for r in online:
         if r.status == "idle":
             pending = [t for t in temp[r.robot_id] if t.status == "pending"]
@@ -140,19 +152,23 @@ def ns_assign(robots, unassigned):
 def step_robots(robots, dt):
     for r in robots:
         if r.status == "navigating":
+            # Track history trail
+            r.trail.append(tuple(r.pos))
+            if len(r.trail) > 20:
+                r.trail.pop(0)
+                
             if not r.path or r.wp_idx >= len(r.path):
                 r.status = "working"
-                r.work_left = 3.0
+                r.work_left = 2.5
                 continue
             tx, ty = r.path[r.wp_idx]
             target = np.array([tx, ty])
             diff = target - r.pos
             dist = np.linalg.norm(diff)
-            if dist < 0.40:
+            if dist < 0.35:
                 r.wp_idx += 1
             else:
                 heading = math.atan2(diff[1], diff[0])
-                # Smoothly rotate towards heading
                 r.theta = heading
                 r.pos += (diff / dist) * r.speed * dt
         elif r.status == "working":
@@ -280,21 +296,36 @@ def render_frame(screen, robots, tasks, completed_tasks, makespan, font_title, f
         text = font_hud_bold.render(zd["name"], True, border_color)
         screen.blit(text, (lbl_x, lbl_y))
 
-    # Active Target Lines & Robots
+    # Active Target Lines, Trails & Robots
     for i, r in enumerate(robots):
         color = COLOR_ROBOT_BOARDS[i % len(COLOR_ROBOT_BOARDS)]
-        if r.status == "navigating" and r.current_task:
-            rx, ry = r.pos
-            tx, ty = r.current_task.target_pos
-            start_p = world_to_screen(rx, ry)
-            end_p = world_to_screen(tx, ty)
-            pygame.draw.line(screen, color, start_p, end_p, 1)
-            pygame.draw.circle(screen, color, end_p, 4)
+        
+        # 1. Draw fading trail
+        for j in range(1, len(r.trail)):
+            alpha = int(255 * (j / len(r.trail)) * 0.35)
+            trail_color = (color[0], color[1], color[2], alpha)
+            p1 = world_to_screen(*r.trail[j-1])
+            p2 = world_to_screen(*r.trail[j])
+            
+            trail_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            pygame.draw.line(trail_surf, trail_color, p1, p2, 3)
+            screen.blit(trail_surf, (0, 0))
 
+        # 2. Draw A* Path Line (waypoints) instead of straight target line
+        if r.status == "navigating" and r.path and r.wp_idx < len(r.path):
+            path_pts = [world_to_screen(wp[0], wp[1]) for wp in r.path[r.wp_idx:]]
+            if len(path_pts) > 1:
+                pygame.draw.lines(screen, color, False, path_pts, 2)
+            for pt in path_pts:
+                pygame.draw.circle(screen, color, pt, 2)
+            pygame.draw.circle(screen, color, path_pts[-1], 5)
+
+        # 3. Draw Robot Body
         sx, sy = world_to_screen(r.pos[0], r.pos[1])
         pygame.draw.circle(screen, color, (sx, sy), int(ROBOT_RADIUS * SCALE))
         pygame.draw.circle(screen, (255, 255, 255), (sx, sy), int(ROBOT_RADIUS * SCALE), 1)
         
+        # Heading indicator line
         dx = math.cos(r.theta) * ROBOT_RADIUS * SCALE
         dy = math.sin(r.theta) * ROBOT_RADIUS * SCALE
         pygame.draw.line(screen, (255, 255, 255), (sx, sy), (sx + int(dx), sy - int(dy)), 2)
@@ -359,7 +390,7 @@ def render_frame(screen, robots, tasks, completed_tasks, makespan, font_title, f
     screen.blit(sec_title2, (sb_x + 20, y_pos))
     y_pos += 22
     
-    for t in tasks[:6]:
+    for t in tasks[:8]:
         status_symbol = "⏳"
         status_color = (150, 160, 170)
         if t.task_id in completed_tasks:
@@ -404,7 +435,6 @@ def main():
     pygame.font.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     
-    # Try system fonts, fallback to default
     try:
         font_title = pygame.font.SysFont('DejaVu Sans', 18, bold=True)
         font_hud = pygame.font.SysFont('DejaVu Sans Mono', 14)
@@ -416,13 +446,16 @@ def main():
         
     robots = [Robot(f"robot_{i}", SPAWN_LOCATIONS[i % len(SPAWN_LOCATIONS)]) for i in range(4)]
     
-    instruction = "Transfer 10 units from Shelf A to Loading Dock, clear Sorting Area, and charge Robot 3"
+    instruction = "Retrieve Shelf A & B, deliver cargo to Loading Dock and Sorting Area, charge Robot 0 and 3, and dispatch Robot 2 to Shelf C"
     tasks = [
         Task("t1_pick_shelf_A", "pick", "shelf_A"),
         Task("t2_place_loading_dock", "place", "loading_dock"),
-        Task("t3_pick_sorting_area", "pick", "sorting_area"),
+        Task("t3_pick_shelf_B", "pick", "shelf_B"),
         Task("t4_place_sorting_area", "place", "sorting_area"),
-        Task("t5_charge_robot_3", "charge", "charging_station")
+        Task("t5_charge_robot_0", "charge", "charging_station"),
+        Task("t6_charge_robot_3", "charge", "charging_station"),
+        Task("t7_pick_shelf_C", "pick", "shelf_C"),
+        Task("t8_return_dock", "go_to", "docking_station")
     ]
     
     completed_tasks = set()
@@ -432,8 +465,8 @@ def main():
     dt = 0.2
     makespan = 0.0
     
-    # Run 180 simulation steps to ensure all tasks complete
-    for step in range(180):
+    # Run 240 simulation steps to ensure all complex tasks complete
+    for step in range(240):
         # Allocation
         pending = [t for t in unassigned if t.status == "pending"]
         if pending:
@@ -468,8 +501,8 @@ def main():
     )
     print(f"GIF successfully created at {output_path}")
     
-    # Save a high-quality snapshot png of the middle of simulation
-    frames[40].save("/home/hannan/workspace/FleetLang/results/snapshot.png")
+    # Save a high-quality snapshot png of the middle of simulation (step 80 is very busy)
+    frames[80].save("/home/hannan/workspace/FleetLang/results/snapshot.png")
     print("Snapshot PNG successfully updated")
 
 if __name__ == "__main__":

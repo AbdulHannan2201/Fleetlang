@@ -5,7 +5,7 @@
 [![Pygame](https://img.shields.io/badge/Pygame-2.6%2B-green?style=flat-square)](https://www.pygame.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-orange?style=flat-square)](LICENSE)
 
-An intelligent, natural language-grounded multi-robot fleet management and coordination simulation framework. **FleetLang** parses unstructured natural language commands (e.g., *"Transfer 10 units from Shelf A to Loading Dock, clear Sorting Area, and charge Robot 3"*), converts them into structured multi-agent task specifications, schedules them using optimized allocation strategies, and coordinates autonomous execution across a namespaced fleet of mobile robots.
+An intelligent, natural language-grounded multi-robot fleet management and coordination simulation framework. **FleetLang** parses unstructured natural language commands (e.g., *"Retrieve Shelf A & B, deliver cargo to Loading Dock and Sorting Area, charge Robot 0 and 3, and dispatch Robot 2 to Shelf C"*), converts them into structured multi-agent task specifications, schedules them using optimized allocation strategies, and coordinates autonomous execution across a namespaced fleet of mobile robots.
 
 ---
 
