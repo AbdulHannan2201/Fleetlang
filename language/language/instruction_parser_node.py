@@ -78,7 +78,8 @@ class InstructionParserNode(Node):
 
     def parse_instruction(self, text, use_llm=True):
         import re
-        # Standardize shelf numbers to characters (e.g. shelf 1/2/3 -> shelf_A/_B/_C)
+        # Standardize shelf numbers and correct typos (e.g. shelp/shlef/shefl/shelves/shelfs -> shelf)
+        text = re.sub(r"\b(shelp|shlef|shefl|shelves|shelfs)\b", "shelf", text, flags=re.IGNORECASE)
         text = re.sub(r"\bshelf\s*1\b", "shelf_A", text, flags=re.IGNORECASE)
         text = re.sub(r"\bshelf\s*2\b", "shelf_B", text, flags=re.IGNORECASE)
         text = re.sub(r"\bshelf\s*3\b", "shelf_C", text, flags=re.IGNORECASE)
@@ -171,7 +172,10 @@ class InstructionParserNode(Node):
             "3. \"charge\" robot:\n"
             "   - task_type: \"charge\" at charging_station (priority: 3)\n"
             "4. \"go to\", \"navigate to\", \"visit\", \"head to\" A:\n"
-            "   - task_type: \"go_to\" at A (priority: 0)\n\n"
+            "   - task_type: \"go_to\" at A (priority: 0)\n"
+            "5. If a source is specified (e.g., from shelf_A) but no destination is specified:\n"
+            "   - task_type: \"pick\" at the source (priority: 1)\n"
+            "   - task_type: \"place\" at loading_dock (priority: 1)\n\n"
             "Examples:\n"
             "Instruction: \"transfer from shelf_A to loading_dock\"\n"
             "Output: [{\"task_type\": \"pick\", \"target_zone\": \"shelf_A\", \"priority\": 1}, {\"task_type\": \"place\", \"target_zone\": \"loading_dock\", \"priority\": 1}]\n\n"

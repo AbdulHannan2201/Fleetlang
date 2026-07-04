@@ -472,7 +472,8 @@ def render_frame(screen, robots, tasks, completed_tasks, makespan, font_title, f
 
 def parse_instruction(text):
     import re
-    # Standardize shelf numbers to characters (e.g. shelf 1/2/3 -> shelf_A/_B/_C)
+    # Standardize shelf numbers and correct typos (e.g. shelp/shlef/shefl/shelves/shelfs -> shelf)
+    text = re.sub(r"\b(shelp|shlef|shefl|shelves|shelfs)\b", "shelf", text, flags=re.IGNORECASE)
     text = re.sub(r"\bshelf\s*1\b", "shelf_A", text, flags=re.IGNORECASE)
     text = re.sub(r"\bshelf\s*2\b", "shelf_B", text, flags=re.IGNORECASE)
     text = re.sub(r"\bshelf\s*3\b", "shelf_C", text, flags=re.IGNORECASE)
