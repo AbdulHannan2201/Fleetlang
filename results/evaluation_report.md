@@ -77,7 +77,19 @@ All 22 test cases pass successfully:
 
 ---
 
-## 3. Key Performance & Scaling Insights
+## 3. Allocation Strategy Performance: Greedy vs. Neighborhood Search
+
+Multi-trial scaling benchmarks were run over 15 randomized trials per configuration to measure overall makespan under Greedy and Neighborhood Search (NS) allocation:
+
+| Fleet Config (Robots/Tasks) | Greedy Makespan (Mean ± Std Dev, Var) | NS Makespan (Mean ± Std Dev, Var) | Makespan Reduction (%) |
+| :--- | :--- | :--- | :--- |
+| 2 Robots / 8 Tasks | 67.93 ± 9.56s (Var: 91.33) | 49.31 ± 8.15s (Var: 66.47) | 27.4% |
+| 4 Robots / 16 Tasks | 67.93 ± 5.15s (Var: 26.57) | 45.63 ± 8.21s (Var: 67.34) | 32.8% |
+| 6 Robots / 24 Tasks | 67.33 ± 4.91s (Var: 24.09) | 56.33 ± 6.38s (Var: 40.75) | 16.3% |
+
+---
+
+## 4. Key Performance & Scaling Insights
 
 1. **Parser Robustness:** Sorting matched zones by character-index occurrence resolves ambiguity (e.g., distinguishing between source and destination in *"transfer from shelf_C to loading_dock"*). Case-insensitive grounding ensures ROS semantic map targets match natural language inputs.
 2. **Path Resolution:** The $20$-cell outward search range for `find_nearest_free_cell` allows robots to navigate to shelves even when shelf coordinate targets overlap with obstacles.

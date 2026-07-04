@@ -488,17 +488,20 @@ def main():
     # ----------------- 2. SCALING SCENARIOS AND trials (MEAN ± STD) -----------------
     print("--- Running Scaled Allocation Benchmarks (15 Trials Per Configuration) ---")
     configs = [
-        {"robots": 2, "tasks": 10},
-        {"robots": 4, "tasks": 20},
-        {"robots": 8, "tasks": 40},
-        {"robots": 16, "tasks": 80}
+        {"robots": 2, "tasks": 8},
+        {"robots": 4, "tasks": 16},
+        {"robots": 6, "tasks": 24}
     ]
     
     num_trials = 15
     greedy_means = []
     greedy_stds = []
+    greedy_vars = []
     ns_means = []
     ns_stds = []
+    ns_vars = []
+    
+    table_rows = []
     
     for conf in configs:
         n_rob = conf["robots"]
@@ -520,13 +523,40 @@ def main():
             t_ns, _ = run_simulation(n_rob, "neighborhood_search", tasks, spawns)
             ns_runs.append(t_ns)
             
-        greedy_means.append(np.mean(greedy_runs))
-        greedy_stds.append(np.std(greedy_runs))
-        ns_means.append(np.mean(ns_runs))
-        ns_stds.append(np.std(ns_runs))
+        g_mean = np.mean(greedy_runs)
+        g_std = np.std(greedy_runs)
+        g_var = np.var(greedy_runs)
         
-        print(f"  > Greedy makespan: {np.mean(greedy_runs):.2f} ± {np.std(greedy_runs):.2f} seconds")
-        print(f"  > NS makespan:     {np.mean(ns_runs):.2f} ± {np.std(ns_runs):.2f} seconds")
+        ns_mean = np.mean(ns_runs)
+        ns_std = np.std(ns_runs)
+        ns_var = np.var(ns_runs)
+        
+        greedy_means.append(g_mean)
+        greedy_stds.append(g_std)
+        greedy_vars.append(g_var)
+        
+        ns_means.append(ns_mean)
+        ns_stds.append(ns_std)
+        ns_vars.append(ns_var)
+        
+        reduction = ((g_mean - ns_mean) / g_mean) * 100.0 if g_mean > 0 else 0
+        
+        table_rows.append(
+            f"| {n_rob} Robots / {n_task} Tasks | {g_mean:.2f} ± {g_std:.2f}s (Var: {g_var:.2f}) | {ns_mean:.2f} ± {ns_std:.2f}s (Var: {ns_var:.2f}) | {reduction:.1f}% |"
+        )
+        
+        print(f"  > Greedy makespan: {g_mean:.2f} ± {g_std:.2f} seconds (Var: {g_var:.2f})")
+        print(f"  > NS makespan:     {ns_mean:.2f} ± {ns_std:.2f} seconds (Var: {ns_var:.2f})")
+        
+    # Write Markdown table
+    markdown_table = (
+        "| Fleet Config (Robots/Tasks) | Greedy Makespan (Mean ± Std Dev, Var) | NS Makespan (Mean ± Std Dev, Var) | Makespan Reduction (%) |\n"
+        "| :--- | :--- | :--- | :--- |\n"
+    ) + "\n".join(table_rows) + "\n"
+    
+    with open('/home/hannan/workspace/FleetLang/results/benchmark_table.md', 'w') as f:
+        f.write(markdown_table)
+    print("Saved benchmark markdown table to: results/benchmark_table.md\n")
         
     # Plot Scaling Curve with Error Bars (shaded standard deviation)
     plt.figure(figsize=(9, 6))
@@ -550,8 +580,9 @@ def main():
     plt.legend(fontsize=10)
     plt.tight_layout()
     plt.savefig('/home/hannan/workspace/FleetLang/results/allocator_scaling.png', dpi=150)
+    plt.savefig('/home/hannan/workspace/FleetLang/results/makespan_scaling.png', dpi=150)
     plt.close()
-    print("Saved allocator scaling plot to: results/allocator_scaling.png\n")
+    print("Saved allocator scaling plots to: results/allocator_scaling.png and results/makespan_scaling.png\n")
     
     # ----------------- 3. ABLATION STUDY 1: GROUNDING ON VS OFF -----------------
     print("--- Running Ablation 1: Semantic Map Grounding ON vs OFF ---")
